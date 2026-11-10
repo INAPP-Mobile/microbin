@@ -6,7 +6,7 @@
 
 # Deploy and Host
 
-MicroBin is a super tiny, feature-rich, self-contained pastebin and file-sharing web app written in Rust. Paste text, upload a file, or shorten a URL — each upload gets a memorable animal-name link, with optional expiry, burn-after-reading, encryption, and QR codes. One-click deploy creates a single Rust service with a persistent volume and no companion database: pastas, files, and settings live in SQLite on the volume. After deploy, open the public URL and paste — no account needed to upload; log in at `/auth_admin` (username `admin`, generated password from the deploy form) to manage uploads.
+MicroBin is a super tiny, feature-rich, self-contained pastebin and file-sharing web app written in Rust. Paste text, upload a file, or shorten a URL — each upload gets a memorable animal-name link, with optional expiry, burn-after-reading, encryption, and QR codes. One-click deploy creates a single Rust service with a persistent volume and no companion database: pastas, files, and settings live in a JSON store on the volume. After deploy, open the public URL and paste — no account needed to upload; log in at `/auth_admin` (username `admin`, generated password from the deploy form) to manage uploads.
 
 ## About Hosting
 
@@ -14,7 +14,7 @@ Hosting MicroBin on Railway keeps your pastes on your own volume instead of a Sa
 
 ## Why Deploy
 
-- Your pastes, your files: uploads live in SQLite and a file store on your own Railway volume — not in a chat log or a SaaS that can disappear.
+- Your pastes, your files: uploads live in a JSON store and a file store on your own Railway volume — not in a chat log or a SaaS that can disappear.
 - Tiny footprint: a single Rust binary, a few MB of RAM at rest — no database service to run or pay for.
 - No account needed to share: anyone with the link can read a public pasta, so a shared link just works.
 - Animal-name links: uploads get memorable names instead of random strings, and the built-in QR code puts a link on a phone in one scan.
@@ -31,8 +31,8 @@ Hosting MicroBin on Railway keeps your pastes on your own volume instead of a Sa
 
 ## Dependencies for
 
-- A single MicroBin service (Rust, SQLite, no companion service).
-- One persistent volume mounted at `/data` (database at `/data/database.sqlite`, file store at `/data/attachments`, public files at `/data/public`).
+- A single MicroBin service (Rust, JSON store, no companion service).
+- One persistent volume mounted at `/data` (JSON store at `/data/pasta_data/database.json`, file store at `/data/attachments`, public files at `/data/public`).
 - Environment variables (condensed reference — full documentation in the repo README):
 
 | Variable | Default | Description |

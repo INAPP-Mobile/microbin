@@ -22,11 +22,30 @@
 #   Dockerfile declares USER 65532:65532 — the published image does
 #   not carry it — but the wrapper does not depend on either.)
 # - DATA: one Railway volume at /data. MICROBIN_DATA_DIR (baked
-#   below) puts everything on the volume: database.sqlite, the
-#   attachments/ file store, and public/ (verified in
-#   src/util/db_sqlite.rs and src/util/misc.rs — every path is
-#   built from ARGS.data_dir), so pastas, files, and settings
-#   survive restarts and redeploys.
+#   below) puts the file store and public files on the volume
+#   (attachments/ and public/ — verified in src/util/misc.rs, every
+#   path is built from ARGS.data_dir).
+# - STORAGE BACKEND — JSON, NOT SQLITE (upstream bug, verified live
+#   2026-11-10): MicroBin 2.1.4's SQLite reader mis-maps its own
+#   columns. The table is created as (..., attachments, pasta_type)
+#   but select_all_from_db reads pasta_type from index 16 (the
+#   attachments column) and attachments from index 17, so after ANY
+#   restart every reloaded pasta gets pasta_type "null" and the
+#   admin table and /list render EMPTY (the count still shows the
+#   real number, and direct /raw, /file, /pasta links keep working
+#   because they look up by id). Proven on the live deploy: two
+#   pastas created pre-reboot vanished from the admin table after a
+#   redeploy while a pasta created post-reboot rendered fine. The
+#   JSON backend (MICROBIN_JSON_DB, baked below) is upstream's own
+#   first-class alternative — db.rs routes every operation through
+#   it and serde round-trips pasta_type faithfully — so the wrapper
+#   uses it. Its database path is a hardcoded relative
+#   pasta_data/database.json (db_json.rs), so entrypoint.sh cds to
+#   /data first, putting the JSON store on the volume next to the
+#   file store. If upstream ever fixes the SQLite reader, the
+#   backend can be switched back — the JSON file and the SQLite
+#   file are independent, so switching backends starts with an
+#   empty listing either way.
 # - ADMIN: upstream defaults are admin / m1cr0b1n (args.rs) and the
 #   admin page warns loudly when they are left in place, so the
 #   password is a generated deploy-form variable
@@ -72,10 +91,12 @@ COPY --from=busybox /bin/busybox /bin/busybox
 COPY entrypoint.sh /railway-entrypoint.sh
 RUN chmod +x /railway-entrypoint.sh
 
-# Baked constants (see header): data dir on the volume, admin
-# username, telemetry and update checks off. The HTTP port is
-# mapped from Railway's PORT by the entrypoint on every boot.
-ENV MICROBIN_DATA_DIR=/data \
+# Baked constants (see header): JSON backend (upstream SQLite
+# reader bug), data dir on the volume, admin username, telemetry
+# and update checks off. The HTTP port is mapped from Railway's
+# PORT by the entrypoint on every boot.
+ENV MICROBIN_JSON_DB=true \
+    MICROBIN_DATA_DIR=/data \
     MICROBIN_ADMIN_USERNAME=admin \
     MICROBIN_DISABLE_TELEMETRY=true \
     MICROBIN_DISABLE_UPDATE_CHECKING=true

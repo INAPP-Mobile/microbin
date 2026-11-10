@@ -6,7 +6,7 @@
 
 # MicroBin
 
-MicroBin is a super tiny, feature-rich, self-contained pastebin and file-sharing web app written in Rust. Paste text, upload a file, or shorten a URL — each upload gets a memorable animal-name link (like `server.com/pasta/pig-dog-cat`), with optional expiry, burn-after-reading, client- or server-side encryption, and QR codes. One-click deploy creates a single Rust service with a persistent volume and no companion database: pastas, files, and settings live in SQLite on the volume. After deploy, open the public URL and paste — no account needed to upload; log in at `/auth_admin` (username `admin`, generated password from the deploy form) to manage uploads.
+MicroBin is a super tiny, feature-rich, self-contained pastebin and file-sharing web app written in Rust. Paste text, upload a file, or shorten a URL — each upload gets a memorable animal-name link (like `server.com/pasta/pig-dog-cat`), with optional expiry, burn-after-reading, client- or server-side encryption, and QR codes. One-click deploy creates a single Rust service with a persistent volume and no companion database: pastas, files, and settings live in a JSON store on the volume. After deploy, open the public URL and paste — no account needed to upload; log in at `/auth_admin` (username `admin`, generated password from the deploy form) to manage uploads.
 
 ## Source Repository
 
@@ -18,7 +18,7 @@ Deploying MicroBin on Railway gives you a private pastebin on your own volume. T
 
 ## Why Deploy
 
-- Your pastes, your files: uploads live in SQLite and a file store on your own Railway volume — not in a chat log or a SaaS that can disappear.
+- Your pastes, your files: uploads live in a JSON store and a file store on your own Railway volume — not in a chat log or a SaaS that can disappear.
 - Tiny footprint: a single Rust binary, a few MB of RAM at rest — no database service to run or pay for.
 - No account needed to share: anyone with the link can read a public pasta, so a shared link just works.
 - Animal-name links: uploads get memorable names instead of random strings, and the built-in QR code puts a link on a phone in one scan.
@@ -40,7 +40,7 @@ Deploying MicroBin on Railway gives you a private pastebin on your own volume. T
 | `MICROBIN_ADMIN_PASSWORD` | `${{secret(16)}}` | Admin password for `/auth_admin` (username `admin`). Generated per deploy; the upstream default (`m1cr0b1n`) is never used. |
 | `MICROBIN_ADMIN_USERNAME` | `admin` | Admin username. Baked into the image; set the variable to change it. |
 | `MICROBIN_PORT` | (derived from `$PORT` at boot) | HTTP port MicroBin listens on. Set by the entrypoint from Railway's injected `PORT`; do not set it yourself. |
-| `MICROBIN_DATA_DIR` | `/data` | Data home on the volume: `database.sqlite`, `attachments/`, `public/`. Baked into the image. |
+| `MICROBIN_DATA_DIR` | `/data` | Data home on the volume: JSON store at `pasta_data/database.json`, file store at `attachments/`, public files at `public/`. Baked into the image. |
 | `MICROBIN_PUBLIC_PATH` | (derived from `RAILWAY_PUBLIC_DOMAIN` at boot) | Public URL of the instance. Makes copy-URL and QR links correct behind the proxy. Set manually only for a custom domain. |
 | `MICROBIN_DISABLE_TELEMETRY` | `true` | Disables the upstream telemetry thread. Baked into the image. |
 | `MICROBIN_DISABLE_UPDATE_CHECKING` | `true` | Disables the upstream update check (the version is pinned here). Baked into the image. |
@@ -55,7 +55,7 @@ Deploying MicroBin on Railway gives you a private pastebin on your own volume. T
 | `MICROBIN_ENABLE_READONLY` | `true` | Allow per-upload read-only flag. |
 | `MICROBIN_ENCRYPTION_CLIENT_SIDE` | `true` | Allow client-side encrypted uploads. |
 | `MICROBIN_ENCRYPTION_SERVER_SIDE` | `true` | Allow server-side encrypted uploads. |
-| `MICROBIN_JSON_DB` | (unset) | Set to `true` to store pastas as JSON files instead of SQLite. |
+| `MICROBIN_JSON_DB` | `true` | Store pastas as JSON instead of SQLite. Baked into the image — upstream 2.1.4's SQLite reader mis-maps its columns, so reloaded pastas lose their type and the admin table and listing render empty after any restart; the JSON backend does not have this bug. |
 | `MICROBIN_UPLOADER_PASSWORD` | (unset) | Password required to upload at all; unset means anyone can upload. |
 | `MICROBIN_BASIC_AUTH_USERNAME` / `MICROBIN_BASIC_AUTH_PASSWORD` | (unset) | HTTP Basic Auth in front of the whole site; both must be set to take effect. |
 | `MICROBIN_HIDE_HEADER` / `MICROBIN_HIDE_FOOTER` / `MICROBIN_HIDE_LOGO` | (unset) | Hide parts of the page chrome. |
@@ -74,8 +74,8 @@ Deploying MicroBin on Railway gives you a private pastebin on your own volume. T
 
 ### Deployment Dependencies
 
-- A single MicroBin service (Rust, SQLite, no companion service).
-- One persistent volume mounted at `/data` (database at `/data/database.sqlite`, file store at `/data/attachments`, public files at `/data/public`).
+- A single MicroBin service (Rust, JSON store, no companion service).
+- One persistent volume mounted at `/data` (JSON store at `/data/pasta_data/database.json`, file store at `/data/attachments`, public files at `/data/public`).
 - Plan tier: Hobby is enough — the service idles at a few MB of RAM.
 
 ## Upstream

@@ -18,9 +18,13 @@
 #   warning), but the boot-derived value is what makes copy-URL
 #   and QR links correct behind the proxy. Only set it when a
 #   real domain is present.
-# - HANDOFF: exec the upstream binary exactly as the image does
-#   (entrypoint `microbin`, resolved via PATH to
-#   /usr/bin/microbin).
+# - HANDOFF: cd to /data, then exec the upstream binary exactly
+#   as the image does (entrypoint `microbin`, resolved via PATH to
+#   /usr/bin/microbin). The cd matters: the JSON backend stores its
+#   database at the hardcoded RELATIVE path pasta_data/database.json
+#   (db_json.rs), so running from /data is what puts the JSON store
+#   on the persistent volume next to the file store. Fail loud if
+#   the cd fails — a missing /data means the volume did not mount.
 
 set -eu
 
@@ -40,4 +44,5 @@ if [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
 fi
 
 echo "MicroBin: HTTP on :${PORT_VALUE}, data in /data"
+cd /data || { echo "MicroBin: ERROR /data not available; refusing to start."; exit 1; }
 exec microbin
