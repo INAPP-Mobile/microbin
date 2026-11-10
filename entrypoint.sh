@@ -45,4 +45,8 @@ fi
 
 echo "MicroBin: HTTP on :${PORT_VALUE}, data in /data"
 cd /data || { echo "MicroBin: ERROR /data not available; refusing to start."; exit 1; }
+# The JSON backend writes pasta_data/database.json(.tmp) but never
+# creates its parent dir — first boot panics without it. Pre-create
+# every directory the app writes to on the volume.
+mkdir -p /data/pasta_data /data/attachments /data/public
 exec microbin

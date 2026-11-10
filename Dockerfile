@@ -40,12 +40,13 @@
 #   first-class alternative — db.rs routes every operation through
 #   it and serde round-trips pasta_type faithfully — so the wrapper
 #   uses it. Its database path is a hardcoded relative
-#   pasta_data/database.json (db_json.rs), so entrypoint.sh cds to
-#   /data first, putting the JSON store on the volume next to the
-#   file store. If upstream ever fixes the SQLite reader, the
-#   backend can be switched back — the JSON file and the SQLite
-#   file are independent, so switching backends starts with an
-#   empty listing either way.
+#   pasta_data/database.json (db_json.rs) and it never creates the
+#   parent dir (first boot panics without it), so entrypoint.sh cds
+#   to /data first and pre-creates pasta_data/ (plus attachments/
+#   and public/) on the volume. If upstream ever fixes the SQLite
+#   reader, the backend can be switched back — the JSON file and
+#   the SQLite file are independent, so switching backends starts
+#   with an empty listing either way.
 # - ADMIN: upstream defaults are admin / m1cr0b1n (args.rs) and the
 #   admin page warns loudly when they are left in place, so the
 #   password is a generated deploy-form variable
